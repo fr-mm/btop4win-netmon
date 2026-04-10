@@ -2455,6 +2455,11 @@ namespace NetMon {
 		//? Get ARP table
 		if (GetIpNetTable2(AF_UNSPEC, &arpTable) == NO_ERROR) {
 			for (ULONG i = 0; i < arpTable->NumEntries; i++) {
+				//? Filter out unreachable or incomplete cache entries (stale spam)
+				if (arpTable->Table[i].State == NlnsIncomplete || arpTable->Table[i].State == NlnsUnreachable) {
+					continue;
+				}
+
 				ArpEntry entry;
 				
 				//? Convert IP to string
