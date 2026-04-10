@@ -2432,7 +2432,13 @@ namespace NetMon {
 	int selected = 0;
 
 	auto collect() -> vector<ArpEntry>& {
-		arp_table.clear();
+		static uint64_t last_update = 0;
+		if (Tools::time_ms() - last_update < 5000 && last_update != 0) {
+			return arp_table;
+		}
+		last_update = Tools::time_ms();
+
+		vector<ArpEntry> new_table;
 		PMIB_IPNET_TABLE2 arpTable = nullptr;
 		PMIB_IPFORWARD_TABLE2 routeTable = nullptr;
 
@@ -2512,7 +2518,7 @@ namespace NetMon {
 					}
 				}
 
-				arp_table.push_back(entry);
+				new_table.push_back(entry);
 			}
 		}
 
@@ -2520,11 +2526,16 @@ namespace NetMon {
 		if (routeTable) FreeMibTable(routeTable);
 
 		//? Sort: Gateway first, then router interface, then others
-		rng::sort(arp_table, [](const ArpEntry& a, const ArpEntry& b) {
+		rng::sort(new_table, [](const ArpEntry& a, const ArpEntry& b) {
 			if (a.is_gateway != b.is_gateway) return a.is_gateway;
 			if (a.is_router_interface != b.is_router_interface) return a.is_router_interface;
 			return a.ip < b.ip;
 		});
+
+		if (arp_table != new_table) {
+			arp_table = std::move(new_table);
+			NetMon::redraw = true;
+		}
 
 		return arp_table;
 	}

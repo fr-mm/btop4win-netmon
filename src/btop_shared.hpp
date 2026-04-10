@@ -300,6 +300,10 @@ namespace NetMon {
 		string type;
 		bool is_router_interface = false;
 		bool is_gateway = false;
+
+		bool operator==(const ArpEntry& o) const {
+			return ip == o.ip && mac == o.mac && interface_name == o.interface_name && type == o.type && is_router_interface == o.is_router_interface && is_gateway == o.is_gateway;
+		}
 	};
 	extern vector<ArpEntry> arp_table;
 	extern int start;
