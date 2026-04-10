@@ -2460,6 +2460,14 @@ namespace NetMon {
 				}
 				entry.ip = ipStr;
 
+				//? Filter out Multicast and Broadcast noise
+				if (entry.ip.starts_with("224.") || 
+					entry.ip.starts_with("239.") || 
+					entry.ip == "255.255.255.255" || 
+					entry.ip.starts_with("ff02:")) {
+					continue;
+				}
+
 				//? Convert MAC to string
 				char macStr[20];
 				snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
@@ -2468,9 +2476,18 @@ namespace NetMon {
 					arpTable->Table[i].PhysicalAddress[4], arpTable->Table[i].PhysicalAddress[5]);
 				entry.mac = macStr;
 
-				//? Interface Index
-				entry.interface_name = to_string(arpTable->Table[i].InterfaceIndex);
-				
+				//? Interface Index to Friendly Name
+				MIB_IF_ROW2 ifRow;
+				ZeroMemory(&ifRow, sizeof(ifRow));
+				ifRow.InterfaceIndex = arpTable->Table[i].InterfaceIndex;
+				if (GetIfEntry2(&ifRow) == NO_ERROR) {
+					char aliasStr[256];
+					WideCharToMultiByte(CP_UTF8, 0, ifRow.Alias, -1, aliasStr, sizeof(aliasStr), NULL, NULL);
+					entry.interface_name = aliasStr;
+				} else {
+					entry.interface_name = to_string(arpTable->Table[i].InterfaceIndex);
+				}
+
 				//? Type
 				entry.type = (arpTable->Table[i].State == NlnsPermanent ? "Static" : "Dynamic");
 

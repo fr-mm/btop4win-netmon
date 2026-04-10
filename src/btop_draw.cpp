@@ -1114,7 +1114,7 @@ namespace NetMon {
 			out += Mv::to(Term::height - 1, cx - (int)hint_text.size() / 2) + Theme::c("inactive_fg") + hint_text;
 
 			//? Table Headers
-			const int col1 = 12, col2 = 40, col3 = 25, col4 = 12;
+			const int col1 = 35, col2 = 40, col3 = 25, col4 = 12;
 			out += Mv::to(y, x) + Theme::c("title") + Fx::b 
 				+ ljust("Interface", col1) + " "
 				+ ljust("IP Address", col2) + " "
