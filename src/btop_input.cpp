@@ -192,7 +192,14 @@ namespace Input {
 			//? Global input actions
 			if (not filtering) {
 				bool keep_going = false;
-				if (str_to_lower(key) == "q") {
+				if (key == "tab") {
+					atomic_wait(Runner::active);
+					Global::active_tab = (Global::active_tab == 0) ? 1 : 0;
+					Draw::calcSizes();
+					Runner::run("all", false, true);
+					return;
+				}
+				else if (str_to_lower(key) == "q") {
 					clean_quit(0);
 				}
 				else if (is_in(key, "escape", "m")) {

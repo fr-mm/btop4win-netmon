@@ -133,6 +133,14 @@ A recommended terminal if you're not running Windows 11 (Where it's included by 
 * Custom presets
 * And more...
 
+## Fork Changes (v1.0.6-netmon)
+
+This fork by **Chico** adds custom monitoring capabilities:
+
+* **Custom Network Monitoring Tab**: A new dedicated full-screen tab for advanced network monitoring insights.
+* **Tab Navigation**: Use the `Tab` key to cycle between the default system monitor view and the new Network Monitor tab.
+* **Unified Interface**: Integrated directly into the btop4win architecture with zero configuration overhead.
+
 ## Themes
 
 Btop4win++ uses the same theme files as btop++, bpytop and bashtop (some color values missing in bashtop themes) .

@@ -1085,6 +1085,43 @@ namespace Net {
 
 }
 
+namespace NetMon {
+	string box;
+	bool shown = false, redraw = true;
+
+	string draw(const bool force_redraw) {
+		if (Runner::stopping) return "";
+		if (force_redraw) redraw = true;
+		string out;
+		out.reserve(Term::width * Term::height);
+
+		if (redraw) {
+			out = box;
+
+			//? Centered placeholder text
+			const string title_text = "Custom Network Monitor";
+			const string hint_text = "Press Tab to return to system monitor";
+			const string status_text = "Monitoring features coming soon...";
+
+			const int cx = Term::width / 2;
+			const int cy = Term::height / 2;
+
+			out += Mv::to(cy - 2, cx - (int)title_text.size() / 2)
+				+ Theme::c("title") + Fx::b + title_text + Fx::ub;
+
+			out += Mv::to(cy, cx - (int)status_text.size() / 2)
+				+ Theme::c("main_fg") + status_text;
+
+			out += Mv::to(cy + 2, cx - (int)hint_text.size() / 2)
+				+ Theme::c("inactive_fg") + hint_text;
+
+			redraw = false;
+		}
+
+		return out + Fx::reset;
+	}
+}
+
 namespace Proc {
 	int width_p = 55, height_p = 68;
 	int min_width = 44, min_height = 16;
@@ -1631,6 +1668,7 @@ namespace Draw {
 		Mem::box.clear();
 		Net::box.clear();
 		Proc::box.clear();
+		NetMon::box.clear();
 		Global::clock.clear();
 		Global::overlay.clear();
 		Runner::pause_output = false;
@@ -1646,6 +1684,18 @@ namespace Draw {
 		Cpu::width = Mem::width = Net::width = Proc::width = 0;
 		Cpu::height = Mem::height = Net::height = Proc::height = 0;
 		Cpu::redraw = Mem::redraw = Net::redraw = Proc::redraw = true;
+		NetMon::redraw = true;
+
+		//? If on the netmon tab, draw the full-screen network monitor and skip default boxes
+		if (Global::active_tab == 1) {
+			Cpu::shown = Mem::shown = Net::shown = Proc::shown = false;
+			NetMon::shown = true;
+			NetMon::box = Draw::createBox(1, 1, Term::width, Term::height, Theme::c("net_box"), true, "network monitor");
+			return;
+		}
+
+		//? Default tab: original layout
+		NetMon::shown = false;
 
 		Cpu::shown = s_contains(boxes, "cpu");
 		Mem::shown = s_contains(boxes, "mem");

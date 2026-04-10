@@ -43,6 +43,7 @@ namespace Global {
 	extern atomic<bool> resized;
 	extern string overlay;
 	extern string clock;
+	extern int active_tab;					//? 0 = default system monitor, 1 = custom network monitor
 	const string bg_black = "\033[0;40m";
 	const string fg_white = "\033[1;97m";
 	const string fg_green = "\033[1;92m";
@@ -288,4 +289,13 @@ namespace Proc {
 
 	//* Draw contents of proc box using <plist> as data source
 	string draw(const vector<proc_info>& plist, const bool force_redraw=false, const bool data_same=false);
+}
+
+//* Custom full-screen network monitor tab
+namespace NetMon {
+	extern string box;
+	extern bool shown, redraw;
+
+	//* Draw the full-screen network monitor view
+	string draw(const bool force_redraw=false);
 }

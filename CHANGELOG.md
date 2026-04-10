@@ -1,3 +1,8 @@
+## v1.0.6-netmon
+* Added: Full-screen Custom Network Monitoring tab.
+* Added: `Tab` key navigation to cycle between tabs.
+* Fork: Specialized for network monitoring extensions.
+
 ## v1.0.5
 * Updated: LibreHardwareMonitor to latest version (0.9.4)
 * Added: Better detection of GPU total memory

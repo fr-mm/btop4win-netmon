@@ -54,11 +54,12 @@ namespace Global {
 		{"#801414", "██████╔╝   ██║   ╚██████╔╝██║        ╚═╝    ╚═╝"},
 		{"#000000", "╚═════╝    ╚═╝    ╚═════╝ ╚═╝"},
 	};
-	const string Version = "1.0.5";
+	const string Version = "1.0.6-netmon";
 
 	int coreCount;
 	string overlay;
 	string clock;
+	int active_tab = 0;
 
 	fs::path self_path;
 
@@ -328,83 +329,94 @@ namespace Runner {
 
 			//* Run collection and draw functions for all boxes
 			try {
-				//? CPU
-				if (v_contains(conf.boxes, "cpu")) {
-					try {
-						if (Global::debug) debug_timer("cpu", collect_begin);
+				if (Global::active_tab == 0) {
+					//? CPU
+					if (v_contains(conf.boxes, "cpu")) {
+						try {
+							if (Global::debug) debug_timer("cpu", collect_begin);
 
-						//? Start collect
-						Cpu::cpu_info cpu = Cpu::collect(conf.no_update);
+							//? Start collect
+							Cpu::cpu_info cpu = Cpu::collect(conf.no_update);
 
-						if (Global::debug) debug_timer("cpu", draw_begin);
+							if (Global::debug) debug_timer("cpu", draw_begin);
 
-						//? Draw box
-						if (not pause_output) output += Cpu::draw(cpu, conf.force_redraw, conf.no_update);
+							//? Draw box
+							if (not pause_output) output += Cpu::draw(cpu, conf.force_redraw, conf.no_update);
 
-						if (Global::debug) debug_timer("cpu", draw_done);
+							if (Global::debug) debug_timer("cpu", draw_done);
+						}
+						catch (const std::exception& e) {
+							throw std::runtime_error("Cpu:: -> " + (string)e.what());
+						}
 					}
-					catch (const std::exception& e) {
-						throw std::runtime_error("Cpu:: -> " + (string)e.what());
+
+					//? MEM
+					if (v_contains(conf.boxes, "mem")) {
+						try {
+							if (Global::debug) debug_timer("mem", collect_begin);
+
+							//? Start collect
+							auto mem = Mem::collect(conf.no_update);
+
+							if (Global::debug) debug_timer("mem", draw_begin);
+
+							//? Draw box
+							if (not pause_output) output += Mem::draw(mem, conf.force_redraw, conf.no_update);
+
+							if (Global::debug) debug_timer("mem", draw_done);
+						}
+						catch (const std::exception& e) {
+							throw std::runtime_error("Mem:: -> " + (string)e.what());
+						}
+					}
+
+					//? NET
+					if (v_contains(conf.boxes, "net")) {
+						try {
+							if (Global::debug) debug_timer("net", collect_begin);
+
+							//? Start collect
+							auto net = Net::collect(conf.no_update);
+
+							if (Global::debug) debug_timer("net", draw_begin);
+
+							//? Draw box
+							if (not pause_output) output += Net::draw(net, conf.force_redraw, conf.no_update);
+
+							if (Global::debug) debug_timer("net", draw_done);
+						}
+						catch (const std::exception& e) {
+							throw std::runtime_error("Net:: -> " + (string)e.what());
+						}
+					}
+
+					//? PROC
+					if (v_contains(conf.boxes, "proc")) {
+						try {
+							if (Global::debug) debug_timer("proc", collect_begin);
+
+							//? Start collect
+							auto proc = Proc::collect(conf.no_update);
+
+							if (Global::debug) debug_timer("proc", draw_begin);
+
+							//? Draw box
+							if (not pause_output) output += Proc::draw(proc, conf.force_redraw, conf.no_update);
+
+							if (Global::debug) debug_timer("proc", draw_done);
+						}
+						catch (const std::exception& e) {
+							throw std::runtime_error("Proc:: -> " + (string)e.what());
+						}
 					}
 				}
-
-				//? MEM
-				if (v_contains(conf.boxes, "mem")) {
+				else if (Global::active_tab == 1) {
+					//? NETMON — full-screen custom network monitor tab
 					try {
-						if (Global::debug) debug_timer("mem", collect_begin);
-
-						//? Start collect
-						auto mem = Mem::collect(conf.no_update);
-
-						if (Global::debug) debug_timer("mem", draw_begin);
-
-						//? Draw box
-						if (not pause_output) output += Mem::draw(mem, conf.force_redraw, conf.no_update);
-
-						if (Global::debug) debug_timer("mem", draw_done);
+						if (not pause_output) output += NetMon::draw(conf.force_redraw);
 					}
 					catch (const std::exception& e) {
-						throw std::runtime_error("Mem:: -> " + (string)e.what());
-					}
-				}
-
-				//? NET
-				if (v_contains(conf.boxes, "net")) {
-					try {
-						if (Global::debug) debug_timer("net", collect_begin);
-
-						//? Start collect
-						auto net = Net::collect(conf.no_update);
-
-						if (Global::debug) debug_timer("net", draw_begin);
-
-						//? Draw box
-						if (not pause_output) output += Net::draw(net, conf.force_redraw, conf.no_update);
-
-						if (Global::debug) debug_timer("net", draw_done);
-					}
-					catch (const std::exception& e) {
-						throw std::runtime_error("Net:: -> " + (string)e.what());
-					}
-				}
-
-				//? PROC
-				if (v_contains(conf.boxes, "proc")) {
-					try {
-						if (Global::debug) debug_timer("proc", collect_begin);
-
-						//? Start collect
-						auto proc = Proc::collect(conf.no_update);
-
-						if (Global::debug) debug_timer("proc", draw_begin);
-
-						//? Draw box
-						if (not pause_output) output += Proc::draw(proc, conf.force_redraw, conf.no_update);
-
-						if (Global::debug) debug_timer("proc", draw_done);
-					}
-					catch (const std::exception& e) {
-						throw std::runtime_error("Proc:: -> " + (string)e.what());
+						throw std::runtime_error("NetMon:: -> " + (string)e.what());
 					}
 				}
 			}
@@ -632,7 +644,10 @@ int main(int argc, char **argv) {
 	Draw::calcSizes();
 
 	//? Print out box outlines
-	cout << Term::sync_start << Cpu::box << Mem::box << Net::box << Proc::box << Term::sync_end << flush;
+	if (Global::active_tab == 0)
+		cout << Term::sync_start << Cpu::box << Mem::box << Net::box << Proc::box << Term::sync_end << flush;
+	else
+		cout << Term::sync_start << NetMon::box << Term::sync_end << flush;
 
 
 	//? ------------------------------------------------ MAIN LOOP ----------------------------------------------------
