@@ -241,6 +241,40 @@ namespace Input {
 
 				if (not keep_going) return;
 			}
+			
+			//? Input actions for NetMon tab
+			if (Global::active_tab == 1) {
+				if (key == "up" or (vim_keys and key == "k")) {
+					if (NetMon::selected > 0) NetMon::selected--;
+					if (NetMon::selected < NetMon::start) NetMon::start = NetMon::selected;
+				}
+				else if (key == "down" or (vim_keys and key == "j")) {
+					if (NetMon::selected < (int)NetMon::arp_table.size() - 1) NetMon::selected++;
+				}
+				else if (key == "page_up") {
+					NetMon::start = std::max(0, NetMon::start - 20);
+					NetMon::selected = std::max(0, NetMon::selected - 20);
+				}
+				else if (key == "page_down") {
+					NetMon::start += 20;
+					NetMon::selected += 20;
+				}
+				else if (key == "home" or (vim_keys and key == "g")) {
+					NetMon::start = NetMon::selected = 0;
+				}
+				else if (key == "end" or (vim_keys and key == "G")) {
+					NetMon::selected = (int)NetMon::arp_table.size() - 1;
+				}
+				else if (key == "escape") {
+					Global::active_tab = 0;
+					Draw::calcSizes();
+				}
+				else return;
+
+				NetMon::redraw = true;
+				Runner::run("all", true, true);
+				return;
+			}
 
 			//? Input actions for proc box
 			if (Proc::shown) {

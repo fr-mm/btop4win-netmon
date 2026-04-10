@@ -1098,22 +1098,74 @@ namespace NetMon {
 		if (redraw) {
 			out = box;
 
-			//? Centered placeholder text
-			const string title_text = "Custom Network Monitor";
-			const string hint_text = "Press Tab to return to system monitor";
-			const string status_text = "Monitoring features coming soon...";
-
+			//? Centered title and hint
+			const string title_text = "Network ARP Monitor";
+			const string hint_text = "Press Tab to return | Router info highlighted";
 			const int cx = Term::width / 2;
-			const int cy = Term::height / 2;
+			
+			//? Table positions
+			const int x = 3;
+			const int y = 4;
+			const int width = Term::width - 4;
+			const int height = Term::height - 5;
+			const int row_width = width - 2;
 
-			out += Mv::to(cy - 2, cx - (int)title_text.size() / 2)
-				+ Theme::c("title") + Fx::b + title_text + Fx::ub;
+			out += Mv::to(2, cx - (int)title_text.size() / 2) + Theme::c("title") + Fx::b + title_text + Fx::ub;
+			out += Mv::to(Term::height - 1, cx - (int)hint_text.size() / 2) + Theme::c("inactive_fg") + hint_text;
 
-			out += Mv::to(cy, cx - (int)status_text.size() / 2)
-				+ Theme::c("main_fg") + status_text;
+			//? Table Headers
+			const int col1 = 12, col2 = 40, col3 = 25, col4 = 12;
+			out += Mv::to(y, x) + Theme::c("title") + Fx::b 
+				+ ljust("Interface", col1) + " "
+				+ ljust("IP Address", col2) + " "
+				+ ljust("MAC Address", col3) + " "
+				+ ljust("Type", col4) + Fx::ub;
+			
+			out += Mv::to(y + 1, x) + Theme::c("net_box") + Symbols::h_line * row_width;
 
-			out += Mv::to(cy + 2, cx - (int)hint_text.size() / 2)
-				+ Theme::c("inactive_fg") + hint_text;
+			//? ARP Entries
+			int lc = 0;
+			const int max_rows = height - 2;
+			if (selected >= start + max_rows) start = selected - max_rows + 1;
+			if (selected < start) start = selected;
+			if (start > (int)arp_table.size() - max_rows) start = max(0, (int)arp_table.size() - max_rows);
+
+			for (int i = start; i < (int)arp_table.size() && lc < max_rows; i++) {
+				const auto& entry = arp_table.at(i);
+				bool is_selected = (i == selected);
+				
+				string line_color = Theme::c("main_fg");
+				string suffix = "";
+				
+				if (entry.is_gateway) {
+					line_color = Theme::c("hi_fg");
+					suffix = " [GATEWAY]";
+				} else if (entry.is_router_interface) {
+					line_color = Theme::c("proc_misc");
+				}
+
+				if (is_selected) {
+					out += Mv::to(y + 2 + lc, x) + Theme::c("selected_bg") + Theme::c("selected_fg") + Fx::b;
+				} else {
+					out += Mv::to(y + 2 + lc, x) + line_color;
+				}
+
+				out += ljust(entry.interface_name, col1) + " "
+					+ ljust(entry.ip + suffix, col2) + " "
+					+ ljust(entry.mac, col3) + " "
+					+ ljust(entry.type, col4);
+				
+				if (is_selected) out += Fx::ub + Fx::reset;
+				lc++;
+			}
+
+			//? Scrollbar
+			if ((int)arp_table.size() > max_rows) {
+				const int scroll_pos = clamp((int)round((double)start * (max_rows - 3) / (arp_table.size() - max_rows)), 0, max_rows - 3);
+				out += Mv::to(y + 2, x + row_width) + Theme::c("net_box") + Symbols::up
+					+ Mv::to(y + 2 + max_rows - 1, x + row_width) + Symbols::down
+					+ Mv::to(y + 3 + scroll_pos, x + row_width) + "█";
+			}
 
 			redraw = false;
 		}

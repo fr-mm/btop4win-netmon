@@ -2426,6 +2426,93 @@ namespace Proc {
 	}
 }
 
+namespace NetMon {
+	vector<ArpEntry> arp_table;
+	int start = 0;
+	int selected = 0;
+
+	auto collect() -> vector<ArpEntry>& {
+		arp_table.clear();
+		PMIB_IPNET_TABLE2 arpTable = nullptr;
+		PMIB_IPFORWARD_TABLE2 routeTable = nullptr;
+
+		//? Get default gateway to identify the router interface
+		DWORD gatewayInterfaceIndex = 0;
+		if (GetIpForwardTable2(AF_UNSPEC, &routeTable) == NO_ERROR) {
+			for (ULONG i = 0; i < routeTable->NumEntries; i++) {
+				if (routeTable->Table[i].DestinationPrefix.PrefixLength == 0) { // Default route
+					gatewayInterfaceIndex = routeTable->Table[i].InterfaceIndex;
+				}
+			}
+		}
+
+		//? Get ARP table
+		if (GetIpNetTable2(AF_UNSPEC, &arpTable) == NO_ERROR) {
+			for (ULONG i = 0; i < arpTable->NumEntries; i++) {
+				ArpEntry entry;
+				
+				//? Convert IP to string
+				char ipStr[INET6_ADDRSTRLEN];
+				if (arpTable->Table[i].Address.si_family == AF_INET) {
+					inet_ntop(AF_INET, &arpTable->Table[i].Address.Ipv4.sin_addr, ipStr, sizeof(ipStr));
+				} else {
+					inet_ntop(AF_INET6, &arpTable->Table[i].Address.Ipv6.sin6_addr, ipStr, sizeof(ipStr));
+				}
+				entry.ip = ipStr;
+
+				//? Convert MAC to string
+				char macStr[20];
+				snprintf(macStr, sizeof(macStr), "%02X:%02X:%02X:%02X:%02X:%02X",
+					arpTable->Table[i].PhysicalAddress[0], arpTable->Table[i].PhysicalAddress[1],
+					arpTable->Table[i].PhysicalAddress[2], arpTable->Table[i].PhysicalAddress[3],
+					arpTable->Table[i].PhysicalAddress[4], arpTable->Table[i].PhysicalAddress[5]);
+				entry.mac = macStr;
+
+				//? Interface Index
+				entry.interface_name = to_string(arpTable->Table[i].InterfaceIndex);
+				
+				//? Type
+				entry.type = (arpTable->Table[i].State == NlnsPermanent ? "Static" : "Dynamic");
+
+				entry.is_router_interface = (arpTable->Table[i].InterfaceIndex == gatewayInterfaceIndex);
+				
+				//? Check if this entry is the gateway itself
+				if (routeTable) {
+					for (ULONG j = 0; j < routeTable->NumEntries; j++) {
+						if (routeTable->Table[j].DestinationPrefix.PrefixLength == 0) {
+							if (arpTable->Table[i].Address.si_family == routeTable->Table[j].NextHop.si_family) {
+								if (arpTable->Table[i].Address.si_family == AF_INET) {
+									if (memcmp(&arpTable->Table[i].Address.Ipv4.sin_addr, &routeTable->Table[j].NextHop.Ipv4.sin_addr, sizeof(IN_ADDR)) == 0) {
+										entry.is_gateway = true;
+									}
+								} else {
+									if (memcmp(&arpTable->Table[i].Address.Ipv6.sin6_addr, &routeTable->Table[j].NextHop.Ipv6.sin6_addr, sizeof(IN6_ADDR)) == 0) {
+										entry.is_gateway = true;
+									}
+								}
+							}
+						}
+					}
+				}
+
+				arp_table.push_back(entry);
+			}
+		}
+
+		if (arpTable) FreeMibTable(arpTable);
+		if (routeTable) FreeMibTable(routeTable);
+
+		//? Sort: Gateway first, then router interface, then others
+		rng::sort(arp_table, [](const ArpEntry& a, const ArpEntry& b) {
+			if (a.is_gateway != b.is_gateway) return a.is_gateway;
+			if (a.is_router_interface != b.is_router_interface) return a.is_router_interface;
+			return a.ip < b.ip;
+		});
+
+		return arp_table;
+	}
+}
+
 namespace Tools {
 	double system_uptime() {
 		return (double)GetTickCount64() / 1000;

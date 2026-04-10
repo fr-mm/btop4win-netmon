@@ -293,8 +293,23 @@ namespace Proc {
 
 //* Custom full-screen network monitor tab
 namespace NetMon {
+	struct ArpEntry {
+		string ip;
+		string mac;
+		string interface_name;
+		string type;
+		bool is_router_interface = false;
+		bool is_gateway = false;
+	};
+	extern vector<ArpEntry> arp_table;
+	extern int start;
+	extern int selected;
+
 	extern string box;
 	extern bool shown, redraw;
+
+	//* Collect ARP table information
+	auto collect() -> vector<ArpEntry>&;
 
 	//* Draw the full-screen network monitor view
 	string draw(const bool force_redraw=false);

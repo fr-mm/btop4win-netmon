@@ -413,6 +413,7 @@ namespace Runner {
 				else if (Global::active_tab == 1) {
 					//? NETMON — full-screen custom network monitor tab
 					try {
+						NetMon::collect();
 						if (not pause_output) output += NetMon::draw(conf.force_redraw);
 					}
 					catch (const std::exception& e) {
