@@ -676,8 +676,7 @@ namespace Tools {
 		CloseHandle(pinfo.hThread);
 
 		if (cbuff) {
-			//*(cbuff + sinfo.dwFlags) = 0;
-			ret = string(cbuff);
+			ret = string(cbuff, sinfo.dwFlags);
 		};
 
 		GlobalFree(cbuff);

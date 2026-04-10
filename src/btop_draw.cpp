@@ -1114,11 +1114,15 @@ namespace NetMon {
 			out += Mv::to(2, cx - (int)title_text.size() / 2) + Theme::c("title") + Fx::b + title_text + Fx::ub;
 			out += Mv::to(Term::height - 1, cx - (int)hint_text.size() / 2) + Theme::c("inactive_fg") + hint_text;
 
+			const string update_info = "Last update: " + last_update_str;
+			out += Mv::to(Term::height - 1, Term::width - (int)update_info.size() - 2) + Theme::c("inactive_fg") + update_info;
+
 			//? Table Headers
-			const int col1 = 30, col2 = 39, col_tag = 20, col3 = 20, col4 = 12;
+			const int col1 = 25, col2 = 20, col_vendor = 25, col_tag = 15, col3 = 20, col4 = 7;
 			out += Mv::to(y, x) + Theme::c("title") + Fx::b 
 				+ ljust("Interface", col1) + " "
 				+ ljust("IP Address", col2) + " "
+				+ ljust("Vendor", col_vendor) + " "
 				+ ljust("Tag", col_tag) + " "
 				+ ljust("MAC Address", col3) + " "
 				+ ljust("Type", col4) + Fx::ub;
@@ -1141,7 +1145,7 @@ namespace NetMon {
 				
 				if (entry.is_gateway) {
 					line_color = Theme::c("hi_fg");
-					suffix = " [GATEWAY]";
+					suffix = " [GW]";
 				} else if (entry.is_router_interface) {
 					line_color = Theme::c("proc_misc");
 				}
@@ -1153,7 +1157,8 @@ namespace NetMon {
 				}
 
 				out += ljust(entry.interface_name, col1) + " "
-					+ ljust(entry.ip + suffix, col2) + " ";
+					+ ljust(entry.ip + suffix, col2) + " "
+					+ ljust(entry.hostname, col_vendor) + " ";
 					
 				if (tag_editing and is_selected) {
 					string t_out = tag_input(col_tag);

@@ -182,7 +182,8 @@ namespace Config {
 		{"log_level", 			"#* Set loglevel for \"~/.config/btop/btop.log\" levels are: \"ERROR\" \"WARNING\" \"INFO\" \"DEBUG\".\n"
 								"#* The level set includes all lower levels, i.e. \"DEBUG\" will show all logging info."},
 								
-		{"netmon_tags",			"#* Saved custom tags for MAC addresses in the Network Monitor tab. Format: MAC1=Tag1|MAC2=Tag2"}
+		{"netmon_tags",			"#* Saved custom tags for MAC addresses in the Network Monitor tab. Format: MAC1=Tag1|MAC2=Tag2"},
+		{"netmon_vendors",		"#* Saved hardware vendor cache for Network Monitor. Format: MAC1=Vendor1|MAC2=Vendor2"}
 	};
 
 	unordered_flat_map<string, string> strings = {
@@ -211,7 +212,8 @@ namespace Config {
 		{"selected_name", ""},
 		{"selected_status", ""},
 		{"detailed_name", ""},
-		{"netmon_tags", ""}
+		{"netmon_tags", ""},
+		{"netmon_vendors", ""}
 	};
 	unordered_flat_map<string, string> stringsTmp;
 

@@ -23,6 +23,7 @@ tab-size = 4
 #include <mutex>
 #include <chrono>
 #include <locale>
+#include <thread>
 #include <codecvt>
 #include <semaphore>
 #include <iostream>
@@ -2431,6 +2432,63 @@ namespace NetMon {
 	int start = 0;
 	int selected = 0;
 	bool tag_editing = false;
+	string last_update_str = "Initializing...";
+	static unordered_flat_map<string, string> internal_vendor_cache; // MAC -> Vendor
+	static std::mutex cache_mutex;
+	static vector<string> res_queue;
+	static bool resolver_started = false;
+
+	void resolve_single_ip(string ip, string mac) {
+		string vendor = "";
+		
+		// Method: Nmap -sn for MAC Vendor discovery
+		string ret;
+		if (ExecCMD("nmap -sn --host-timeout 400ms " + ip, ret)) {
+			auto pos = ret.find("MAC Address:");
+			if (pos != string::npos) {
+				auto start_paren = ret.find("(", pos);
+				auto end_paren = ret.find(")", start_paren);
+				if (start_paren != string::npos && end_paren != string::npos) {
+					vendor = ret.substr(start_paren + 1, end_paren - start_paren - 1);
+				}
+			}
+		}
+
+		if (!vendor.empty()) {
+			std::lock_guard<std::mutex> lock(cache_mutex);
+			internal_vendor_cache[mac] = vendor;
+			
+			// Persist to config
+			string vendor_str = "";
+			for (const auto& [m, v] : internal_vendor_cache) {
+				vendor_str += m + "=" + v + "|";
+			}
+			if (!vendor_str.empty()) vendor_str.pop_back();
+			Config::set("netmon_vendors", vendor_str);
+			
+			NetMon::redraw = true;
+		}
+	}
+
+	void resolver_thread() {
+		while (!Runner::stopping) {
+			std::vector<std::pair<string, string>> to_resolve; // ip, mac
+			{
+				std::lock_guard<std::mutex> lock(cache_mutex);
+				for (const auto& ip_mac : res_queue) {
+					const auto& kv = Tools::ssplit(ip_mac, '|');
+					if (kv.size() == 2) to_resolve.push_back({kv[0], kv[1]});
+				}
+				res_queue.clear();
+			}
+			
+			for (const auto& entry : to_resolve) {
+				std::thread(resolve_single_ip, entry.first, entry.second).detach();
+			}
+			
+			Tools::sleep_ms(2000); 
+		}
+	}
 
 	auto collect() -> vector<ArpEntry>& {
 		static uint64_t last_update = 0;
@@ -2448,6 +2506,17 @@ namespace NetMon {
 		for (const auto& pair : ssplit(raw_tags, '|')) {
 			const auto& kv = ssplit(pair, '=');
 			if (kv.size() == 2) tags_map[kv[0]] = kv[1];
+		}
+
+		string raw_vendors = Config::getS("netmon_vendors");
+		{
+			std::lock_guard<std::mutex> lock(cache_mutex);
+			if (internal_vendor_cache.empty() && !raw_vendors.empty()) {
+				for (const auto& pair : ssplit(raw_vendors, '|')) {
+					const auto& kv = ssplit(pair, '=');
+					if (kv.size() == 2) internal_vendor_cache[kv[0]] = kv[1];
+				}
+			}
 		}
 
 		//? Get default gateway to identify the router interface
@@ -2512,6 +2581,24 @@ namespace NetMon {
 				entry.type = (arpTable->Table[i].State == NlnsPermanent ? "Static" : "Dynamic");
 
 				entry.is_router_interface = (arpTable->Table[i].InterfaceIndex == gatewayInterfaceIndex);
+
+				//? Vendor resolution (Backgrounded to prevent freeze)
+				if (!resolver_started) {
+					resolver_started = true;
+					std::thread(resolver_thread).detach();
+				}
+
+				{
+					std::lock_guard<std::mutex> lock(cache_mutex);
+					if (internal_vendor_cache.contains(entry.mac)) {
+						entry.hostname = internal_vendor_cache.at(entry.mac);
+					} else {
+						string res_id = entry.ip + "|" + entry.mac;
+						if (!Tools::v_contains(res_queue, res_id)) {
+							res_queue.push_back(res_id);
+						}
+					}
+				}
 				
 				//? Check if this entry is the gateway itself
 				if (routeTable) {
@@ -2546,10 +2633,11 @@ namespace NetMon {
 			return a.ip < b.ip;
 		});
 
+		NetMon::last_update_str = Tools::strf_time("%X");
 		if (arp_table != new_table) {
 			arp_table = std::move(new_table);
-			NetMon::redraw = true;
 		}
+		NetMon::redraw = true;
 
 		return arp_table;
 	}
