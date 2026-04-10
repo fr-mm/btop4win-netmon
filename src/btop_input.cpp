@@ -190,7 +190,7 @@ namespace Input {
 			auto help_key = (vim_keys ? "H" : "h");
 			auto kill_key = (vim_keys ? "K" : "k");
 			//? Global input actions
-			if (not filtering) {
+			if (not filtering and not NetMon::tag_editing) {
 				bool keep_going = false;
 				if (key == "tab") {
 					atomic_wait(Runner::active);
@@ -244,7 +244,46 @@ namespace Input {
 			
 			//? Input actions for NetMon tab
 			if (Global::active_tab == 1) {
-				if (key == "up" or (vim_keys and key == "k")) {
+				if (NetMon::tag_editing) {
+					if (key == "enter") {
+						NetMon::tag_editing = false;
+						if (NetMon::selected >= 0 && NetMon::selected < (int)NetMon::arp_table.size()) {
+							auto& entry = NetMon::arp_table.at(NetMon::selected);
+							
+							string raw_tags = Config::getS("netmon_tags");
+							unordered_flat_map<string, string> tags_map;
+							for (auto& pair : ssplit(raw_tags, '|')) {
+								auto kv = ssplit(pair, '=');
+								if (kv.size() == 2) tags_map[kv[0]] = kv[1];
+							}
+							
+							tags_map[entry.mac] = NetMon::tag_input.text;
+							entry.tag = NetMon::tag_input.text;
+							
+							string new_raw_tags = "";
+							for (auto& [mac, tag] : tags_map) {
+								if (!tag.empty()) new_raw_tags += mac + "=" + tag + "|";
+							}
+							if (!new_raw_tags.empty()) new_raw_tags.pop_back();
+							
+							Config::set("netmon_tags", new_raw_tags);
+						}
+					}
+					else if (key == "escape" or key == "mouse_click") {
+						NetMon::tag_editing = false;
+					}
+					else if (NetMon::tag_input.command(key)) {
+						// Tag input handled key
+					}
+					else return;
+				}
+				else if (key == "t") {
+					NetMon::tag_editing = true;
+					if (NetMon::selected >= 0 && NetMon::selected < (int)NetMon::arp_table.size()) {
+						NetMon::tag_input = { NetMon::arp_table.at(NetMon::selected).tag };
+					}
+				}
+				else if (key == "up" or (vim_keys and key == "k")) {
 					if (NetMon::selected > 0) NetMon::selected--;
 					if (NetMon::selected < NetMon::start) NetMon::start = NetMon::selected;
 				}

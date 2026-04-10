@@ -2430,6 +2430,7 @@ namespace NetMon {
 	vector<ArpEntry> arp_table;
 	int start = 0;
 	int selected = 0;
+	bool tag_editing = false;
 
 	auto collect() -> vector<ArpEntry>& {
 		static uint64_t last_update = 0;
@@ -2441,6 +2442,13 @@ namespace NetMon {
 		vector<ArpEntry> new_table;
 		PMIB_IPNET_TABLE2 arpTable = nullptr;
 		PMIB_IPFORWARD_TABLE2 routeTable = nullptr;
+
+		string raw_tags = Config::getS("netmon_tags");
+		unordered_flat_map<string, string> tags_map;
+		for (const auto& pair : ssplit(raw_tags, '|')) {
+			const auto& kv = ssplit(pair, '=');
+			if (kv.size() == 2) tags_map[kv[0]] = kv[1];
+		}
 
 		//? Get default gateway to identify the router interface
 		DWORD gatewayInterfaceIndex = 0;
@@ -2486,6 +2494,7 @@ namespace NetMon {
 					arpTable->Table[i].PhysicalAddress[2], arpTable->Table[i].PhysicalAddress[3],
 					arpTable->Table[i].PhysicalAddress[4], arpTable->Table[i].PhysicalAddress[5]);
 				entry.mac = macStr;
+				if (tags_map.contains(entry.mac)) entry.tag = tags_map.at(entry.mac);
 
 				//? Interface Index to Friendly Name
 				MIB_IF_ROW2 ifRow;

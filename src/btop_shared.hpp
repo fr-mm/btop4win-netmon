@@ -298,16 +298,18 @@ namespace NetMon {
 		string mac;
 		string interface_name;
 		string type;
+		string tag;
 		bool is_router_interface = false;
 		bool is_gateway = false;
 
 		bool operator==(const ArpEntry& o) const {
-			return ip == o.ip && mac == o.mac && interface_name == o.interface_name && type == o.type && is_router_interface == o.is_router_interface && is_gateway == o.is_gateway;
+			return ip == o.ip && mac == o.mac && interface_name == o.interface_name && type == o.type && tag == o.tag && is_router_interface == o.is_router_interface && is_gateway == o.is_gateway;
 		}
 	};
 	extern vector<ArpEntry> arp_table;
 	extern int start;
 	extern int selected;
+	extern bool tag_editing;
 
 	extern string box;
 	extern bool shown, redraw;

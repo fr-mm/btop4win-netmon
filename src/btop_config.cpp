@@ -180,7 +180,9 @@ namespace Config {
 		{"show_battery", 		"#* Show battery stats in top right if battery is present."},
 
 		{"log_level", 			"#* Set loglevel for \"~/.config/btop/btop.log\" levels are: \"ERROR\" \"WARNING\" \"INFO\" \"DEBUG\".\n"
-								"#* The level set includes all lower levels, i.e. \"DEBUG\" will show all logging info."}
+								"#* The level set includes all lower levels, i.e. \"DEBUG\" will show all logging info."},
+								
+		{"netmon_tags",			"#* Saved custom tags for MAC addresses in the Network Monitor tab. Format: MAC1=Tag1|MAC2=Tag2"}
 	};
 
 	unordered_flat_map<string, string> strings = {
@@ -208,7 +210,8 @@ namespace Config {
 		{"proc_command", ""},
 		{"selected_name", ""},
 		{"selected_status", ""},
-		{"detailed_name", ""}
+		{"detailed_name", ""},
+		{"netmon_tags", ""}
 	};
 	unordered_flat_map<string, string> stringsTmp;
 

@@ -1086,6 +1086,7 @@ namespace Net {
 }
 
 namespace NetMon {
+	Draw::TextEdit tag_input;
 	string box;
 	bool shown = false, redraw = true;
 
@@ -1114,10 +1115,11 @@ namespace NetMon {
 			out += Mv::to(Term::height - 1, cx - (int)hint_text.size() / 2) + Theme::c("inactive_fg") + hint_text;
 
 			//? Table Headers
-			const int col1 = 35, col2 = 40, col3 = 25, col4 = 12;
+			const int col1 = 30, col2 = 39, col_tag = 20, col3 = 20, col4 = 12;
 			out += Mv::to(y, x) + Theme::c("title") + Fx::b 
 				+ ljust("Interface", col1) + " "
 				+ ljust("IP Address", col2) + " "
+				+ ljust("Tag", col_tag) + " "
 				+ ljust("MAC Address", col3) + " "
 				+ ljust("Type", col4) + Fx::ub;
 			
@@ -1151,8 +1153,16 @@ namespace NetMon {
 				}
 
 				out += ljust(entry.interface_name, col1) + " "
-					+ ljust(entry.ip + suffix, col2) + " "
-					+ ljust(entry.mac, col3) + " "
+					+ ljust(entry.ip + suffix, col2) + " ";
+					
+				if (tag_editing and is_selected) {
+					string t_out = tag_input(col_tag);
+					out += t_out + string(max(0, (int)col_tag - (int)ulen(Fx::uncolor(t_out))), ' ') + " ";
+				} else {
+					out += ljust(entry.tag, col_tag) + " ";
+				}
+				
+				out += ljust(entry.mac, col3) + " "
 					+ ljust(entry.type, col4);
 				
 				if (is_selected) out += Fx::ub + Fx::reset;

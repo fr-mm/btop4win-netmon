@@ -135,3 +135,7 @@ namespace Proc {
 	extern unordered_flat_map<size_t, Draw::Graph> p_graphs;
 	extern unordered_flat_map<size_t, int> p_counters;
 }
+
+namespace NetMon {
+	extern Draw::TextEdit tag_input;
+}
